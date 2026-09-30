@@ -23,13 +23,20 @@ Codebase Communication Standard: all source code, inline docstrings, logging, co
   - Muted Text: `#8B9BB0`
   - Accent Color: `#3B82F6`
   - Hairline Border: `#1E293B`
+- Refined Brand Tokens (also strict):
+  - Elevated Chip Surface: `#16202E`
+  - Crisp Chip Border: `#2D3B4E`
+  - Footer Attribution Text and Icon: `#94A3B8`
+  - Background Grid: 56px step, `#1E293B` stroke at 0.20 opacity, drawn inside the card behind all content
+  - Accent Spine: 5px wide, 75% of title font size tall, `rx="2.5"`, offset 8px left of the title
+  - Footer: 28px GitHub mark, 20px semibold (600) author text, 12px gap, 48px from the card's right and bottom edges
 - Typography: Inter or system UI sans-serif. Sans-serif only; no display or serif fonts.
 - Preset Canvas Dimensions (Width x Height):
   - `github-og`: 1280x640
   - `linkedin-banner`: 1584x396
   - `upwork-wide`: 1280x720
   - `upwork-square`: 1280x1280
-- Composition: Generous margins (6-8%), left-aligned hierarchy, single accent element, pill-shaped tech chips, author mark footer.
+- Composition: Generous margins (6-8%), left-aligned hierarchy, single accent element (the vertical spine), rounded-rectangle tech chips (`rx="8"`), author mark footer with GitHub icon.
 
 ## Architectural Boundaries
 - Separation of Concerns:

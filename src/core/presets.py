@@ -25,8 +25,17 @@ class PresetSpec(BaseModel):
     chip_font_size: int
     chip_height: int
     chip_padding_x: int
-    accent_bar_width: int
-    accent_bar_height: int
+    spine_width: int = 5
+    spine_gap: int = 8
+    # Measured from title baseline to tagline cap top; generous so descenders never touch it.
+    title_tagline_gap: int = 34
+    tagline_chips_gap: int = 28
+    footer_inset: int = 48
+    footer_font_size: int = 20
+    footer_icon_size: int = 28
+    chip_radius: int = 8
+    grid_size: int = 56
+    footer_icon_gap: int = 12
 
 
 # padding_x is ~7% of width (brand range 6-8%). The linkedin preset is only 396px tall, so its
@@ -39,11 +48,9 @@ PRESET_REGISTRY: dict[str, PresetSpec] = {
         padding_y=72,
         title_font_size=76,
         tagline_font_size=30,
-        chip_font_size=20,
-        chip_height=44,
-        chip_padding_x=20,
-        accent_bar_width=72,
-        accent_bar_height=6,
+        chip_font_size=15,
+        chip_height=38,
+        chip_padding_x=16,
     ),
     "linkedin-banner": PresetSpec(
         width=1584,
@@ -53,10 +60,8 @@ PRESET_REGISTRY: dict[str, PresetSpec] = {
         title_font_size=44,
         tagline_font_size=22,
         chip_font_size=15,
-        chip_height=32,
-        chip_padding_x=14,
-        accent_bar_width=56,
-        accent_bar_height=4,
+        chip_height=38,
+        chip_padding_x=16,
     ),
     "upwork-wide": PresetSpec(
         width=1280,
@@ -66,10 +71,8 @@ PRESET_REGISTRY: dict[str, PresetSpec] = {
         title_font_size=82,
         tagline_font_size=32,
         chip_font_size=21,
-        chip_height=46,
-        chip_padding_x=22,
-        accent_bar_width=80,
-        accent_bar_height=6,
+        chip_height=38,
+        chip_padding_x=16,
     ),
     "upwork-square": PresetSpec(
         width=1280,
@@ -79,10 +82,8 @@ PRESET_REGISTRY: dict[str, PresetSpec] = {
         title_font_size=76,
         tagline_font_size=36,
         chip_font_size=22,
-        chip_height=48,
-        chip_padding_x=24,
-        accent_bar_width=96,
-        accent_bar_height=8,
+        chip_height=38,
+        chip_padding_x=16,
     ),
 }
 

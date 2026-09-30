@@ -21,4 +21,6 @@ build/
 !.claude/CLAUDE.md
 
 # Generated banner assets and export outputs
+output/*
+!output/lead-enrichment-agent-github-og.png
 output/

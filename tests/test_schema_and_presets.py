@@ -77,16 +77,14 @@ def test_preset_bounds_are_positive_and_fit_canvas(name: str) -> None:
     assert all(value > 0 for value in spec.model_dump().values())
     assert 0.06 <= spec.padding_x / spec.width <= 0.08
     assert spec.padding_y * 2 < spec.height
-    assert spec.accent_bar_width < spec.width - 2 * spec.padding_x
+    assert spec.spine_width > 0 and spec.footer_icon_size > 0
     assert spec.tagline_font_size < spec.title_font_size
     assert spec.chip_font_size < spec.chip_height
 
 
 def test_linkedin_content_fits_narrow_height() -> None:
     spec = get_preset_spec("linkedin-banner")
-    stacked = (
-        spec.accent_bar_height + spec.title_font_size + spec.tagline_font_size + spec.chip_height
-    )
+    stacked = spec.title_font_size + spec.tagline_font_size + spec.chip_height
     assert stacked < spec.height - 2 * spec.padding_y
 
 

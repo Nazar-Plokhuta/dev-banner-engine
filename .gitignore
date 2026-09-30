@@ -1,0 +1,24 @@
+# Byte-compiled / optimized / PVM cache files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+env/
+
+# Packaging and distribution build artifacts
+dist/
+build/
+*.egg-info/
+
+# Testing and linting tool caches
+.pytest_cache/
+.ruff_cache/
+
+# Claude Code internal runtime state and logs (persist configuration file)
+.claude/
+!.claude/CLAUDE.md
+
+# Generated banner assets and export outputs
+output/

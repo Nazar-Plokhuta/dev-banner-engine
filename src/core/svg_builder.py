@@ -18,6 +18,7 @@ _TITLE_GLYPH_RATIO = 0.58
 _CHIP_GAP_RATIO = 0.3
 _BLOCK_GAP_RATIO = 0.25
 _MIN_TITLE_FONT_RATIO = 0.6
+_TITLE_TAGLINE_RATIO = 0.25
 
 
 def _chip_width(text: str, spec: PresetSpec) -> int:
@@ -56,12 +57,24 @@ def render_svg(config: BannerConfig) -> str:
     chip_gap = round(spec.chip_height * _CHIP_GAP_RATIO)
     title_size = _fitted_title_size(config.title, spec)
 
-    bar_y = spec.padding_y
-    title_y = bar_y + spec.accent_bar_height + gap * 2 + title_size
-    tagline_y = title_y + round(spec.tagline_font_size * 1.5)
-    chips_top = tagline_y + gap * 2
-    footer_y = spec.height - spec.padding_y
+    rows = _wrap_chips(config.chips, spec, chip_gap)
+
+    # Offsets are relative to the block top so the whole group can be centred afterwards.
+    title_dy = spec.accent_bar_height + gap * 2 + title_size
+    tagline_dy = title_dy + spec.tagline_font_size + round(title_size * _TITLE_TAGLINE_RATIO)
+    chips_dy = tagline_dy + gap * 2
+    block_height = chips_dy + len(rows) * spec.chip_height + (len(rows) - 1) * chip_gap
+
     card_inset = spec.padding_y // 2
+    footer_y = spec.height - spec.padding_y
+    # The footer owns the bottom band, so the block is centred in the space above it rather than
+    # on the raw canvas; clamping keeps an oversized block inside the card.
+    region_top = card_inset + spec.padding_y // 2
+    region_bottom = footer_y - spec.chip_font_size
+    bar_y = max(region_top, region_top + (region_bottom - region_top - block_height) // 2)
+    title_y = bar_y + title_dy
+    tagline_y = bar_y + tagline_dy
+    chips_top = bar_y + chips_dy
 
     parts: list[str] = [
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{spec.width}" height="{spec.height}" '
@@ -81,7 +94,7 @@ def render_svg(config: BannerConfig) -> str:
 
     index = 0
     row_y = chips_top
-    for row in _wrap_chips(config.chips, spec, chip_gap):
+    for row in rows:
         chip_x = x
         for chip, width in row:
             radius = spec.chip_height // 2

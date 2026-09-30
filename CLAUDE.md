@@ -12,6 +12,7 @@ Codebase Communication Standard: all source code, inline docstrings, logging, co
 - Dependencies: `pydantic`, `typer`, `fastapi`, `uvicorn`, `resvg-py`.
 - Quality Enforcement: PEP 8, Ruff (formatting and linting), pytest for unit and snapshot testing.
 - No AI Fluff: do not write obvious comments (e.g. `# loop through items`). Document architectural intent ("why", not "what").
+- Git Commits: Never run `git commit` automatically unless explicitly instructed. Never attach `Co-Authored-By` trailers or attribution footers to commit messages.
 
 ## Visual & Brand Standards (STRICT - DO NOT ALTER)
 - Brand Persona: Dark engineering, high-contrast B2B minimalism. No neon, no gradients, no arbitrary art assets.

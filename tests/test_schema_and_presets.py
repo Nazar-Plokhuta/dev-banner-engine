@@ -33,7 +33,7 @@ def test_valid_config_at_upper_bounds() -> None:
 
 def test_config_is_frozen() -> None:
     with pytest.raises(ValidationError):
-        make_config().title = "other"  # type: ignore[misc]
+        make_config().title = "other"
 
 
 def test_rejects_extra_fields() -> None:
@@ -99,4 +99,4 @@ def test_preset_spec_is_frozen() -> None:
     spec = get_preset_spec("github-og")
     assert isinstance(spec, PresetSpec)
     with pytest.raises(ValidationError):
-        spec.width = 1  # type: ignore[misc]
+        spec.width = 1

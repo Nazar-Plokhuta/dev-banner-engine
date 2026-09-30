@@ -1,8 +1,14 @@
 from pydantic import BaseModel, ConfigDict
 
+from src.core.errors import BannerEngineError
 
-class UnknownPresetError(KeyError):
+
+class UnknownPresetError(BannerEngineError, KeyError):
     """Raised when a preset key is not present in the registry."""
+
+    def __str__(self) -> str:
+        # KeyError.__str__ would wrap the message in repr quotes.
+        return Exception.__str__(self)
 
 
 class PresetSpec(BaseModel):

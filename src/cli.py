@@ -1,5 +1,4 @@
 import json
-import re
 from pathlib import Path
 from typing import Annotated, Literal
 
@@ -7,6 +6,7 @@ import typer
 from pydantic import TypeAdapter, ValidationError
 
 from src.core.errors import BannerEngineError
+from src.core.naming import slugify
 from src.core.presets import PRESET_REGISTRY
 from src.core.schema import BannerConfig
 from src.core.svg_builder import render_svg
@@ -23,11 +23,6 @@ OutputFormat = Literal["png", "svg"]
 _CONFIG_LIST_ADAPTER: TypeAdapter[list[BannerConfig]] = TypeAdapter(list[BannerConfig])
 
 
-def _slugify(text: str) -> str:
-    slug = re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
-    return slug or "banner"
-
-
 def _split_chips(raw: list[str]) -> list[str]:
     return [chip.strip() for value in raw for chip in value.split(",") if chip.strip()]
 
@@ -41,7 +36,7 @@ def _format_validation_error(error: ValidationError) -> str:
 
 
 def _export(config: BannerConfig, out_dir: Path, fmt: OutputFormat) -> Path:
-    target = out_dir / f"{_slugify(config.title)}-{config.preset}.{fmt}"
+    target = out_dir / f"{slugify(config.title)}-{config.preset}.{fmt}"
     if fmt == "png":
         return export_banner(config, target)
     try:
@@ -58,7 +53,7 @@ def _fail(message: str) -> typer.Exit:
 
 
 def _export_all(configs: list[BannerConfig], out_dir: Path, fmt: OutputFormat) -> None:
-    targets = [f"{_slugify(c.title)}-{c.preset}" for c in configs]
+    targets = [f"{slugify(c.title)}-{c.preset}" for c in configs]
     if len(set(targets)) != len(targets):
         raise _fail("multiple configurations would write to the same output file")
     for config in configs:
@@ -123,3 +118,16 @@ def batch(
         raise _fail(_format_validation_error(exc)) from None
     except BannerEngineError as exc:
         raise _fail(str(exc)) from None
+
+
+@app.command()
+def serve(
+    host: Annotated[str, typer.Option(help="Interface to bind.")] = "127.0.0.1",
+    port: Annotated[int, typer.Option(min=1, max=65535, help="Port to listen on.")] = 8000,
+) -> None:
+    """Start the live preview web service."""
+    import uvicorn
+
+    from src.web.app import app as web_app
+
+    uvicorn.run(web_app, host=host, port=port)

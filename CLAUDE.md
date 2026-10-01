@@ -33,9 +33,7 @@ Codebase Communication Standard: all source code, inline docstrings, logging, co
 - Typography: Inter or system UI sans-serif. Sans-serif only; no display or serif fonts.
 - Preset Canvas Dimensions (Width x Height):
   - `github-og`: 1280x640
-  - `linkedin-banner`: 1584x396
-  - `upwork-wide`: 1280x720
-  - `upwork-square`: 1280x1280
+  - `upwork-card`: 1200x900
 - Composition: Generous margins (6-8%), left-aligned hierarchy, single accent element (the vertical spine), rounded-rectangle tech chips (`rx="8"`), author mark footer with GitHub icon.
 
 ## Architectural Boundaries

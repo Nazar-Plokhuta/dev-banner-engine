@@ -38,6 +38,12 @@ GITHUB_MARK_PATH = (
 _GITHUB_MARK_VIEWBOX = 16
 
 
+def _chip_gap(spec: PresetSpec) -> int:
+    if spec.chip_gap is not None:
+        return spec.chip_gap
+    return round(spec.chip_height * _CHIP_GAP_RATIO)
+
+
 def _chip_width(text: str, spec: PresetSpec) -> int:
     return round(len(text) * spec.chip_font_size * _CHIP_GLYPH_RATIO) + 2 * spec.chip_padding_x
 
@@ -67,10 +73,85 @@ def _wrap_chips(chips: list[str], spec: PresetSpec, gap: int) -> list[list[tuple
     return rows
 
 
+def _frame_parts(spec: PresetSpec, card_inset: int) -> list[str]:
+    """Canvas, card and grid layers shared by every layout."""
+    return [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{spec.width}" height="{spec.height}" '
+        f'viewBox="0 0 {spec.width} {spec.height}">',
+        f'<defs><pattern id="grid-pattern" x="{card_inset}" y="{card_inset}" '
+        f'width="{spec.grid_size}" height="{spec.grid_size}" patternUnits="userSpaceOnUse">'
+        f'<path d="M {spec.grid_size} 0 L 0 0 L 0 {spec.grid_size}" fill="none" '
+        f'stroke="{BORDER}" stroke-opacity="{GRID_OPACITY}" stroke-width="1"/></pattern></defs>',
+        f"<style>text {{ font-family: {FONT_STACK.replace(chr(34), chr(39))}; }}</style>",
+        f'<rect id="canvas" width="{spec.width}" height="{spec.height}" fill="{CANVAS_BG}"/>',
+        f'<rect id="card" x="{card_inset}" y="{card_inset}" '
+        f'width="{spec.width - 2 * card_inset}" height="{spec.height - 2 * card_inset}" '
+        f'rx="16" fill="{SURFACE}" stroke="{BORDER}" stroke-width="1"/>',
+        f'<rect id="grid" x="{card_inset}" y="{card_inset}" '
+        f'width="{spec.width - 2 * card_inset}" height="{spec.height - 2 * card_inset}" '
+        f'rx="16" fill="url(#grid-pattern)"/>',
+    ]
+
+
+def _chip_parts(
+    row: list[tuple[str, int]], chip_x: int, row_y: int, index: int, gap: int, spec: PresetSpec
+) -> list[str]:
+    parts: list[str] = []
+    for chip, width in row:
+        cap_height = round(spec.chip_font_size * _CAP_HEIGHT_RATIO)
+        text_y = row_y + (spec.chip_height + cap_height) // 2
+        parts.append(
+            f'<g id="chip-{index}">'
+            f'<rect x="{chip_x}" y="{row_y}" width="{width}" height="{spec.chip_height}" '
+            f'rx="{spec.chip_radius}" fill="{spec.chip_fill or CHIP_SURFACE}" '
+            f'stroke="{spec.chip_stroke or CHIP_BORDER}" stroke-width="{spec.chip_stroke_width}"/>'
+            f'<text x="{chip_x + width // 2}" y="{text_y}" text-anchor="middle" '
+            f'font-size="{spec.chip_font_size}" font-weight="{spec.chip_font_weight}" '
+            f'fill="{spec.chip_text_fill or TEXT_PRIMARY}">'
+            f"{escape(chip)}</text></g>"
+        )
+        chip_x += width + gap
+        index += 1
+    return parts
+
+
+def _footer_icon_y(baseline_y: int, spec: PresetSpec) -> int:
+    """Top edge of the GitHub mark, vertically centred on the author text's cap height."""
+    return (
+        baseline_y
+        - round(spec.footer_font_size * _CAP_HEIGHT_RATIO) // 2
+        - spec.footer_icon_size // 2
+    )
+
+
+def _footer_part(
+    author: str, spec: PresetSpec, *, baseline_y: int, icon_x: int, text_x: int, anchor: str
+) -> str:
+    icon_y = _footer_icon_y(baseline_y, spec)
+    icon_scale = spec.footer_icon_size / _GITHUB_MARK_VIEWBOX
+    return (
+        f'<g id="footer"><path id="github-mark" d="{GITHUB_MARK_PATH}" fill="{FOOTER_COLOR}" '
+        f'transform="translate({icon_x} {icon_y}) scale({icon_scale:g})"/>'
+        f'<text id="author" x="{text_x}" y="{baseline_y}" text-anchor="{anchor}" '
+        f'font-size="{spec.footer_font_size}" font-weight="600" fill="{FOOTER_COLOR}">'
+        f"{escape(author)}</text></g>"
+    )
+
+
+def _author_width(author: str, spec: PresetSpec) -> int:
+    return round(len(author) * spec.footer_font_size * _FOOTER_GLYPH_RATIO)
+
+
 def render_svg(config: BannerConfig) -> str:
     spec = get_preset_spec(config.preset)
+    if spec.layout == "center":
+        return _render_centered(config, spec)
+    return _render_left(config, spec)
+
+
+def _render_left(config: BannerConfig, spec: PresetSpec) -> str:
     x = spec.padding_x
-    chip_gap = round(spec.chip_height * _CHIP_GAP_RATIO)
+    chip_gap = _chip_gap(spec)
     title_size = _fitted_title_size(config.title, spec)
 
     rows = _wrap_chips(config.chips, spec, chip_gap)
@@ -98,27 +179,15 @@ def render_svg(config: BannerConfig) -> str:
     spine_height = round(title_size * _SPINE_HEIGHT_RATIO)
     spine_y = title_y - (title_cap + spine_height) // 2
 
-    author_width = round(len(config.author) * spec.footer_font_size * _FOOTER_GLYPH_RATIO)
-    icon_x = footer_right - author_width - spec.footer_icon_gap - spec.footer_icon_size
-    icon_y = footer_y - round(spec.footer_font_size * _CAP_HEIGHT_RATIO) // 2
-    icon_y -= spec.footer_icon_size // 2
-    icon_scale = spec.footer_icon_size / _GITHUB_MARK_VIEWBOX
+    icon_x = (
+        footer_right
+        - _author_width(config.author, spec)
+        - spec.footer_icon_gap
+        - spec.footer_icon_size
+    )
 
-    parts: list[str] = [
-        f'<svg xmlns="http://www.w3.org/2000/svg" width="{spec.width}" height="{spec.height}" '
-        f'viewBox="0 0 {spec.width} {spec.height}">',
-        f'<defs><pattern id="grid-pattern" x="{card_inset}" y="{card_inset}" '
-        f'width="{spec.grid_size}" height="{spec.grid_size}" patternUnits="userSpaceOnUse">'
-        f'<path d="M {spec.grid_size} 0 L 0 0 L 0 {spec.grid_size}" fill="none" '
-        f'stroke="{BORDER}" stroke-opacity="{GRID_OPACITY}" stroke-width="1"/></pattern></defs>',
-        f"<style>text {{ font-family: {FONT_STACK.replace(chr(34), chr(39))}; }}</style>",
-        f'<rect id="canvas" width="{spec.width}" height="{spec.height}" fill="{CANVAS_BG}"/>',
-        f'<rect id="card" x="{card_inset}" y="{card_inset}" '
-        f'width="{spec.width - 2 * card_inset}" height="{spec.height - 2 * card_inset}" '
-        f'rx="16" fill="{SURFACE}" stroke="{BORDER}" stroke-width="1"/>',
-        f'<rect id="grid" x="{card_inset}" y="{card_inset}" '
-        f'width="{spec.width - 2 * card_inset}" height="{spec.height - 2 * card_inset}" '
-        f'rx="16" fill="url(#grid-pattern)"/>',
+    parts = _frame_parts(spec, card_inset)
+    parts += [
         f'<rect id="spine" x="{x - spec.spine_gap - spec.spine_width}" y="{spine_y}" '
         f'width="{spec.spine_width}" height="{spine_height}" rx="{spec.spine_width / 2:g}" '
         f'fill="{ACCENT}"/>',
@@ -131,28 +200,88 @@ def render_svg(config: BannerConfig) -> str:
     index = 0
     row_y = chips_top
     for row in rows:
-        chip_x = x
-        for chip, width in row:
-            text_y = row_y + (spec.chip_height + spec.chip_font_size) // 2 - 2
-            parts.append(
-                f'<g id="chip-{index}">'
-                f'<rect x="{chip_x}" y="{row_y}" width="{width}" height="{spec.chip_height}" '
-                f'rx="{spec.chip_radius}" fill="{CHIP_SURFACE}" stroke="{CHIP_BORDER}" '
-                f'stroke-width="1"/>'
-                f'<text x="{chip_x + width // 2}" y="{text_y}" text-anchor="middle" '
-                f'font-size="{spec.chip_font_size}" font-weight="500" fill="{TEXT_PRIMARY}">'
-                f"{escape(chip)}</text></g>"
-            )
-            chip_x += width + chip_gap
-            index += 1
+        parts += _chip_parts(row, x, row_y, index, chip_gap, spec)
+        index += len(row)
         row_y += spec.chip_height + chip_gap
 
     parts.append(
-        f'<g id="footer"><path id="github-mark" d="{GITHUB_MARK_PATH}" fill="{FOOTER_COLOR}" '
-        f'transform="translate({icon_x} {icon_y}) scale({icon_scale:g})"/>'
-        f'<text id="author" x="{footer_right}" y="{footer_y}" text-anchor="end" '
-        f'font-size="{spec.footer_font_size}" font-weight="600" fill="{FOOTER_COLOR}">'
-        f"{escape(config.author)}</text></g>"
+        _footer_part(
+            config.author,
+            spec,
+            baseline_y=footer_y,
+            icon_x=icon_x,
+            text_x=footer_right,
+            anchor="end",
+        )
     )
+    parts.append("</svg>")
+    return "\n".join(parts) + "\n"
+
+
+def _render_centered(config: BannerConfig, spec: PresetSpec) -> str:
+    center_x = spec.width // 2
+    chip_gap = _chip_gap(spec)
+    title_size = _fitted_title_size(config.title, spec)
+    rows = _wrap_chips(config.chips, spec, chip_gap)
+
+    title_cap = round(title_size * _CAP_HEIGHT_RATIO)
+    tagline_cap = round(spec.tagline_font_size * _CAP_HEIGHT_RATIO)
+    title_dy = title_cap
+    tagline_dy = title_dy + spec.title_tagline_gap + tagline_cap
+    chips_dy = (
+        tagline_dy + spec.tagline_chips_gap
+        if spec.show_tagline
+        else title_dy + spec.title_chips_gap
+    )
+    block_height = chips_dy + len(rows) * spec.chip_height + (len(rows) - 1) * chip_gap
+
+    card_inset = spec.padding_y // 2
+    # The icon is the tallest footer element, so its bottom edge defines the group's bottom.
+    cap_half = round(spec.footer_font_size * _CAP_HEIGHT_RATIO) // 2
+    icon_below_baseline = spec.footer_icon_size - spec.footer_icon_size // 2 - cap_half
+    footer_y = spec.height - card_inset - spec.footer_bottom_inset - icon_below_baseline
+    # Centre between the card top and the footer mark (or the card bottom when there is no
+    # footer) so the footer band does not skew the balance; the clamp keeps an oversized block
+    # inside the card padding.
+    limit_bottom = _footer_icon_y(footer_y, spec) if spec.show_footer else spec.height - card_inset
+    free_space = limit_bottom - card_inset - block_height
+    block_top = max(card_inset + spec.padding_y // 2, card_inset + free_space // 2)
+
+    parts = _frame_parts(spec, card_inset)
+    parts += [
+        f'<text id="title" x="{center_x}" y="{block_top + title_dy}" text-anchor="middle" '
+        f'font-size="{title_size}" font-weight="{spec.title_font_weight}" '
+        f'fill="{spec.title_fill or TEXT_PRIMARY}">{escape(config.title)}</text>',
+    ]
+    if spec.show_tagline:
+        parts.append(
+            f'<text id="tagline" x="{center_x}" y="{block_top + tagline_dy}" '
+            f'text-anchor="middle" font-size="{spec.tagline_font_size}" font-weight="400" '
+            f'fill="{TEXT_MUTED}">{escape(config.tagline)}</text>'
+        )
+
+    index = 0
+    row_y = block_top + chips_dy
+    for row in rows:
+        row_width = sum(width for _, width in row) + chip_gap * (len(row) - 1)
+        parts += _chip_parts(row, center_x - row_width // 2, row_y, index, chip_gap, spec)
+        index += len(row)
+        row_y += spec.chip_height + chip_gap
+
+    if spec.show_footer:
+        footer_width = (
+            spec.footer_icon_size + spec.footer_icon_gap + _author_width(config.author, spec)
+        )
+        icon_x = center_x - footer_width // 2
+        parts.append(
+            _footer_part(
+                config.author,
+                spec,
+                baseline_y=footer_y,
+                icon_x=icon_x,
+                text_x=icon_x + spec.footer_icon_size + spec.footer_icon_gap,
+                anchor="start",
+            )
+        )
     parts.append("</svg>")
     return "\n".join(parts) + "\n"

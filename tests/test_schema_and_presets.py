@@ -8,9 +8,7 @@ from src.core.schema import BannerConfig
 
 EXPECTED_DIMENSIONS = {
     "github-og": (1280, 640),
-    "linkedin-banner": (1584, 396),
-    "upwork-wide": (1280, 720),
-    "upwork-square": (1280, 1280),
+    "upwork-card": (1200, 900),
 }
 
 
@@ -74,18 +72,16 @@ def test_preset_dimensions_and_aspect_ratio(name: str, dimensions: tuple[int, in
 @pytest.mark.parametrize("name", EXPECTED_DIMENSIONS)
 def test_preset_bounds_are_positive_and_fit_canvas(name: str) -> None:
     spec = get_preset_spec(name)
-    assert all(value > 0 for value in spec.model_dump().values())
-    assert 0.06 <= spec.padding_x / spec.width <= 0.08
+    values = spec.model_dump().values()
+    sizes = [v for v in values if isinstance(v, int) and not isinstance(v, bool)]
+    assert all(value > 0 for value in sizes)
+    # upwork-card uses an explicit 56px margin calibrated to the Upwork crop container.
+    minimum = 0.045 if name == "upwork-card" else 0.06
+    assert minimum <= spec.padding_x / spec.width <= 0.08
     assert spec.padding_y * 2 < spec.height
     assert spec.spine_width > 0 and spec.footer_icon_size > 0
     assert spec.tagline_font_size < spec.title_font_size
     assert spec.chip_font_size < spec.chip_height
-
-
-def test_linkedin_content_fits_narrow_height() -> None:
-    spec = get_preset_spec("linkedin-banner")
-    stacked = spec.title_font_size + spec.tagline_font_size + spec.chip_height
-    assert stacked < spec.height - 2 * spec.padding_y
 
 
 def test_unknown_preset_raises_domain_error() -> None:

@@ -14,7 +14,7 @@ PAYLOAD: dict[str, Any] = {
     "title": "Dev Banner",
     "tagline": "Ship faster",
     "chips": ["Python", "FastAPI"],
-    "preset": "upwork-wide",
+    "preset": "upwork-card",
 }
 
 
@@ -37,7 +37,7 @@ def test_render_svg_returns_valid_svg() -> None:
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("image/svg+xml")
     root = ElementTree.fromstring(response.text)
-    assert root.get("width") == "1280" and root.get("height") == "720"
+    assert root.get("width") == "1200" and root.get("height") == "900"
 
 
 def test_render_png_returns_attachment() -> None:
@@ -45,7 +45,7 @@ def test_render_png_returns_attachment() -> None:
     assert response.status_code == 200
     assert response.headers["content-type"] == "image/png"
     assert response.headers["content-disposition"] == (
-        'attachment; filename="dev-banner-upwork-wide.png"'
+        'attachment; filename="dev-banner-upwork-card.png"'
     )
     assert response.content.startswith(PNG_MAGIC)
 
@@ -86,3 +86,10 @@ def test_serve_command_runs_uvicorn(monkeypatch: pytest.MonkeyPatch) -> None:
     result = CliRunner().invoke(cli_app, ["serve", "--port", "9001"])
     assert result.exit_code == 0, result.output
     assert calls == [{"host": "127.0.0.1", "port": 9001}]
+
+
+def test_render_svg_supports_upwork_card() -> None:
+    response = client.post("/api/render/svg", json={**PAYLOAD, "preset": "upwork-card"})
+    assert response.status_code == 200
+    root = ElementTree.fromstring(response.text)
+    assert root.get("width") == "1200" and root.get("height") == "900"

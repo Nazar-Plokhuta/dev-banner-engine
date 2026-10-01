@@ -84,10 +84,10 @@ def test_layout_has_no_vertical_overlap(preset: str, config_overrides: dict[str,
     spec = get_preset_spec(preset)
     root = parse(render_svg(make_config(preset=preset, **config_overrides)))
 
-    spine = by_id(root, "spine")
+    spine = by_id(root, "spine") if spec.layout == "left" else None
     title_y = float(by_id(root, "title").get("y", ""))
-    tagline_y = float(by_id(root, "tagline").get("y", ""))
-    footer_y = float(by_id(root, "author").get("y", ""))
+    tagline = root.find(".//*[@id='tagline']")
+    author = root.find(".//*[@id='author']")
 
     chip_rects = [
         rect for group in chip_groups(root) if (rect := group.find(f"{SVG_NS}rect")) is not None
@@ -97,10 +97,19 @@ def test_layout_has_no_vertical_overlap(preset: str, config_overrides: dict[str,
     bottoms = [float(r.get("y", "")) + float(r.get("height", "")) for r in chip_rects]
     rights = [float(r.get("x", "")) + float(r.get("width", "")) for r in chip_rects]
 
-    assert float(spine.get("x", "")) >= 0
-    assert title_y < tagline_y - spec.tagline_font_size * 0.5
-    assert tagline_y < min(tops)
-    assert max(bottoms) < footer_y - spec.footer_icon_size
+    if spine is not None:
+        assert float(spine.get("x", "")) >= 0
+    if tagline is not None:
+        tagline_y = float(tagline.get("y", ""))
+        assert title_y < tagline_y - spec.tagline_font_size * 0.5
+        assert tagline_y < min(tops)
+    else:
+        assert title_y < min(tops)
+    if author is not None:
+        assert max(bottoms) < float(author.get("y", "")) - spec.footer_icon_size
+    else:
+        card = by_id(root, "card")
+        assert max(bottoms) < float(card.get("y", "")) + float(card.get("height", ""))
     assert max(rights) <= spec.width - spec.padding_x
 
 
@@ -152,11 +161,15 @@ def test_chips_are_crisp_rounded_rectangles(preset: str) -> None:
         rect = group.find(f"{SVG_NS}rect")
         text = group.find(f"{SVG_NS}text")
         assert rect is not None and text is not None
-        assert rect.get("height") == "38" and rect.get("rx") == "8"
-        assert (rect.get("fill"), rect.get("stroke")) == ("#16202E", "#2D3B4E")
-        assert text.get("font-weight") == "500" and text.get("fill") == "#E8EEF5"
-    github_text = chip_groups(parse(render_svg(make_config())))[0].find(f"{SVG_NS}text")
-    assert github_text is not None and github_text.get("font-size") == "15"
+        spec = get_preset_spec(preset)
+        assert rect.get("height") == str(spec.chip_height)
+        assert rect.get("rx") == str(spec.chip_radius)
+        assert rect.get("fill") == (spec.chip_fill or "#16202E")
+        assert rect.get("stroke") == (spec.chip_stroke or "#2D3B4E")
+        assert rect.get("stroke-width") == str(spec.chip_stroke_width)
+        assert text.get("font-weight") == str(spec.chip_font_weight)
+        assert text.get("fill") == (spec.chip_text_fill or "#E8EEF5")
+        assert text.get("font-size") == str(spec.chip_font_size)
 
 
 def test_footer_groups_github_mark_with_author() -> None:
@@ -183,3 +196,48 @@ def test_rendering_is_self_contained() -> None:
         and "<image" not in svg
         and "http://" not in svg.replace("http://www.w3.org/2000/svg", "")
     )
+
+
+def test_upwork_card_is_an_icon_like_title_and_badges_stack() -> None:
+    spec = get_preset_spec("upwork-card")
+    github = get_preset_spec("github-og")
+    assert spec.layout == "center" and github.layout == "left"
+    assert not spec.show_tagline and not spec.show_footer
+    assert github.show_tagline and github.show_footer
+    assert (spec.title_font_size, spec.title_font_weight, spec.title_fill) == (136, 800, "#FFFFFF")
+    assert (spec.chip_height, spec.chip_padding_x, spec.chip_radius) == (92, 36, 18)
+    assert (spec.chip_font_size, spec.chip_font_weight, spec.chip_text_fill) == (44, 700, "#FFFFFF")
+    assert (spec.chip_fill, spec.chip_stroke, spec.chip_stroke_width) == ("#1E293B", "#3B82F6", 2)
+    assert spec.chip_gap == 16 and spec.title_chips_gap == 44
+
+    # A short title keeps the nominal 136px; longer ones are fitted by the shared shrink rule.
+    root = parse(render_svg(make_config(preset="upwork-card", title="Dev Kit")))
+    center = spec.width / 2
+    for removed in ("spine", "tagline", "footer", "author", "github-mark"):
+        assert root.find(f".//*[@id='{removed}']") is None
+    assert "Ship faster" not in render_svg(make_config(preset="upwork-card"))
+
+    title = by_id(root, "title")
+    assert title.get("text-anchor") == "middle" and float(title.get("x", "")) == center
+    assert title.get("font-size") == "136" and title.get("font-weight") == "800"
+    assert title.get("fill") == "#FFFFFF"
+
+    title_y = float(title.get("y", ""))
+    rects = [r for g in chip_groups(root) if (r := g.find(f"{SVG_NS}rect")) is not None]
+    assert float(rects[0].get("y", "")) - title_y == 44
+    xs = sorted((float(r.get("x", "")), float(r.get("width", ""))) for r in rects)
+    assert all(nx - (x + w) == 16 for (x, w), (nx, _) in zip(xs, xs[1:], strict=False))
+    left, right = xs[0][0], xs[-1][0] + xs[-1][1]
+    assert abs((left + right) / 2 - center) <= 1
+
+    block_top = title_y - round(136 * 0.72)
+    block_bottom = float(rects[-1].get("y", "")) + 92
+    assert abs((block_top + block_bottom) / 2 - spec.height / 2) <= 1
+
+
+def test_upwork_card_title_fits_content_width() -> None:
+    spec = get_preset_spec("upwork-card")
+    root = parse(render_svg(make_config(preset="upwork-card", title="Dev Banner Engine")))
+    size = int(by_id(root, "title").get("font-size", ""))
+    assert int(spec.title_font_size * 0.6) <= size < spec.title_font_size
+    assert len("Dev Banner Engine") * size * 0.58 <= spec.width - 2 * spec.padding_x

@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel, ConfigDict
 
 from src.core.errors import BannerEngineError
@@ -34,12 +36,28 @@ class PresetSpec(BaseModel):
     footer_font_size: int = 20
     footer_icon_size: int = 28
     chip_radius: int = 8
+    chip_font_weight: int = 500
+    # Colour and stroke overrides fall back to the brand tokens in the SVG builder when None.
+    chip_fill: str | None = None
+    chip_stroke: str | None = None
+    chip_stroke_width: int = 1
+    chip_text_fill: str | None = None
+    chip_gap: int | None = None
+    title_font_weight: int = 700
+    title_fill: str | None = None
     grid_size: int = 56
     footer_icon_gap: int = 12
+    layout: Literal["left", "center"] = "left"
+    # Thumbnail-first presets drop the tagline: it is unreadable once the card is downscaled.
+    show_tagline: bool = True
+    show_footer: bool = True
+    title_chips_gap: int = 48
+    # Centered layout only: distance from the card bottom to the lowest edge of the footer group.
+    footer_bottom_inset: int = 44
 
 
-# padding_x is ~7% of width (brand range 6-8%). The linkedin preset is only 396px tall, so its
-# type scale and vertical padding are reduced to keep title, tagline, chips and footer in frame.
+# padding_x is ~7% of the github-og width (brand range 6-8%). upwork-card uses a 56px margin as
+# its type scale is sized to fill the 4:3 crop container.
 PRESET_REGISTRY: dict[str, PresetSpec] = {
     "github-og": PresetSpec(
         width=1280,
@@ -52,38 +70,32 @@ PRESET_REGISTRY: dict[str, PresetSpec] = {
         chip_height=38,
         chip_padding_x=16,
     ),
-    "linkedin-banner": PresetSpec(
-        width=1584,
-        height=396,
-        padding_x=112,
-        padding_y=40,
-        title_font_size=44,
-        tagline_font_size=22,
-        chip_font_size=15,
-        chip_height=38,
-        chip_padding_x=16,
-    ),
-    "upwork-wide": PresetSpec(
-        width=1280,
-        height=720,
-        padding_x=88,
+    # Upwork shows this card at roughly 240x180, so it is built like an app icon: only a giant
+    # title and heavy, high-contrast badges. Tagline and footer are dropped as they turn to noise.
+    "upwork-card": PresetSpec(
+        width=1200,
+        height=900,
+        padding_x=56,
         padding_y=80,
-        title_font_size=82,
-        tagline_font_size=32,
-        chip_font_size=21,
-        chip_height=38,
-        chip_padding_x=16,
-    ),
-    "upwork-square": PresetSpec(
-        width=1280,
-        height=1280,
-        padding_x=88,
-        padding_y=96,
-        title_font_size=76,
-        tagline_font_size=36,
-        chip_font_size=22,
-        chip_height=38,
-        chip_padding_x=16,
+        title_font_size=136,
+        title_font_weight=800,
+        title_fill="#FFFFFF",
+        tagline_font_size=28,
+        chip_font_size=44,
+        chip_height=92,
+        chip_padding_x=36,
+        chip_radius=18,
+        chip_font_weight=700,
+        chip_fill="#1E293B",
+        chip_stroke="#3B82F6",
+        chip_stroke_width=2,
+        chip_text_fill="#FFFFFF",
+        chip_gap=16,
+        grid_size=64,
+        layout="center",
+        show_tagline=False,
+        show_footer=False,
+        title_chips_gap=44,
     ),
 }
 

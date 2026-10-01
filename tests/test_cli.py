@@ -36,19 +36,19 @@ def test_generate_png(tmp_path: Path) -> None:
 
 
 def test_generate_svg_with_repeated_chip_flags(tmp_path: Path) -> None:
-    args = base_args(tmp_path, "--format", "svg", "--preset", "upwork-wide", "--chips", "Rust")
+    args = base_args(tmp_path, "--format", "svg", "--preset", "upwork-card", "--chips", "Rust")
     result = runner.invoke(app, args)
     assert result.exit_code == 0, result.output
-    svg = (tmp_path / "dev-banner-upwork-wide.svg").read_text(encoding="utf-8")
+    svg = (tmp_path / "dev-banner-upwork-card.svg").read_text(encoding="utf-8")
     assert svg.startswith("<svg") and "Rust" in svg and "FastAPI" in svg
 
 
-def test_all_presets_generates_four_files(tmp_path: Path) -> None:
+def test_all_presets_generates_both_preset_files(tmp_path: Path) -> None:
     result = runner.invoke(app, base_args(tmp_path, "--all-presets"))
     assert result.exit_code == 0, result.output
     names = sorted(p.name for p in tmp_path.iterdir())
     assert names == sorted(f"dev-banner-{name}.png" for name in PRESET_REGISTRY)
-    assert len(names) == 4
+    assert len(names) == 2
 
 
 def write_config(path: Path, payload: Any) -> Path:
@@ -60,7 +60,7 @@ SAMPLE: dict[str, Any] = {
     "title": "Alpha",
     "tagline": "First",
     "chips": ["Python"],
-    "preset": "linkedin-banner",
+    "preset": "github-og",
 }
 
 
@@ -68,7 +68,7 @@ def test_batch_with_single_config(tmp_path: Path) -> None:
     config = write_config(tmp_path / "c.json", SAMPLE)
     result = runner.invoke(app, ["batch", "--config", str(config), "--out", str(tmp_path / "o")])
     assert result.exit_code == 0, result.output
-    assert (tmp_path / "o" / "alpha-linkedin-banner.png").is_file()
+    assert (tmp_path / "o" / "alpha-github-og.png").is_file()
 
 
 def test_batch_with_config_list(tmp_path: Path) -> None:
@@ -78,8 +78,8 @@ def test_batch_with_config_list(tmp_path: Path) -> None:
     result = runner.invoke(app, args)
     assert result.exit_code == 0, result.output
     assert sorted(p.name for p in out.iterdir()) == [
-        "alpha-linkedin-banner.svg",
-        "beta-linkedin-banner.svg",
+        "alpha-github-og.svg",
+        "beta-github-og.svg",
     ]
 
 
@@ -139,3 +139,11 @@ def test_unknown_preset_error_keeps_domain_and_key_semantics() -> None:
     assert isinstance(error, BannerEngineError)
     assert isinstance(error, KeyError)
     assert str(error) == "Unknown preset 'x'"
+
+
+def test_upwork_card_preset_is_accepted(tmp_path: Path) -> None:
+    args = base_args(tmp_path, "--format", "svg", "--preset", "upwork-card")
+    result = runner.invoke(app, args)
+    assert result.exit_code == 0, result.output
+    svg = (tmp_path / "dev-banner-upwork-card.svg").read_text(encoding="utf-8")
+    assert 'width="1200" height="900"' in svg

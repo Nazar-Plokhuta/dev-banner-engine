@@ -3,7 +3,7 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
 Chip = Annotated[str, StringConstraints(min_length=1, max_length=24)]
-PresetName = Literal["github-og", "linkedin-banner", "upwork-wide", "upwork-square"]
+PresetName = Literal["github-og", "upwork-card"]
 
 
 class BannerConfig(BaseModel):

@@ -1,14 +1,15 @@
-# dev-banner-engine
+# Dev Banner Engine
+
+[![Release](https://img.shields.io/github/v/release/Nazar-Plokhuta/dev-banner-engine?style=for-the-badge&color=2563EB&logo=github&logoColor=white)](https://github.com/Nazar-Plokhuta/dev-banner-engine/releases)
+[![Python 3.11+](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![Pydantic v2](https://img.shields.io/badge/Pydantic-v2-E92063?style=for-the-badge&logo=pydantic&logoColor=white)](https://docs.pydantic.dev/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 
 Deterministic SVG/XML banner generation engine with pixel-perfect PNG rasterization for GitHub repositories and Upwork portfolios.
 
-![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-3B82F6?style=flat-square&logo=python&logoColor=white)
-![Pydantic v2](https://img.shields.io/badge/pydantic-v2-0B0F14?style=flat-square&logo=pydantic&logoColor=white)
-![Ruff](https://img.shields.io/badge/lint-ruff-0B0F14?style=flat-square&logo=ruff&logoColor=white)
-![Mypy Strict](https://img.shields.io/badge/mypy-strict-1E293B?style=flat-square)
-![License MIT](https://img.shields.io/badge/license-MIT-94A3B8?style=flat-square)
-
 ![dev-banner-engine hero banner](assets/hero-banner.png)
+
+---
 
 ## Core Architecture & Features
 

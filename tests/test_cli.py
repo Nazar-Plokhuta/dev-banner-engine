@@ -35,6 +35,25 @@ def test_generate_png(tmp_path: Path) -> None:
     assert target.read_bytes().startswith(PNG_MAGIC)
 
 
+def test_generate_with_custom_filename(tmp_path: Path) -> None:
+    result = runner.invoke(app, base_args(tmp_path, "--filename", "hero.png"))
+    assert result.exit_code == 0, result.output
+    assert (tmp_path / "hero.png").read_bytes().startswith(PNG_MAGIC)
+
+
+@pytest.mark.parametrize("filename", ["../escape.png", "nested/hero.png"])
+def test_filename_rejects_paths(tmp_path: Path, filename: str) -> None:
+    result = runner.invoke(app, base_args(tmp_path, "--filename", filename))
+    assert result.exit_code == 1
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_filename_rejects_all_presets(tmp_path: Path) -> None:
+    result = runner.invoke(app, base_args(tmp_path, "--all-presets", "--filename", "hero.png"))
+    assert result.exit_code == 1
+    assert list(tmp_path.iterdir()) == []
+
+
 def test_generate_svg_with_repeated_chip_flags(tmp_path: Path) -> None:
     args = base_args(tmp_path, "--format", "svg", "--preset", "upwork-card", "--chips", "Rust")
     result = runner.invoke(app, args)

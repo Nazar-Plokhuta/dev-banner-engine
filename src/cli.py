@@ -35,8 +35,8 @@ def _format_validation_error(error: ValidationError) -> str:
     return "Invalid banner configuration:\n" + "\n".join(lines)
 
 
-def _export(config: BannerConfig, out_dir: Path, fmt: OutputFormat) -> Path:
-    target = out_dir / f"{slugify(config.title)}-{config.preset}.{fmt}"
+def _export(config: BannerConfig, out_dir: Path, fmt: OutputFormat, filename: str | None) -> Path:
+    target = out_dir / (filename or f"{slugify(config.title)}-{config.preset}.{fmt}")
     if fmt == "png":
         return export_banner(config, target)
     try:
@@ -52,12 +52,26 @@ def _fail(message: str) -> typer.Exit:
     return typer.Exit(code=1)
 
 
-def _export_all(configs: list[BannerConfig], out_dir: Path, fmt: OutputFormat) -> None:
+def _export_all(
+    configs: list[BannerConfig],
+    out_dir: Path,
+    fmt: OutputFormat,
+    filename: str | None = None,
+) -> None:
     targets = [f"{slugify(c.title)}-{c.preset}" for c in configs]
     if len(set(targets)) != len(targets):
         raise _fail("multiple configurations would write to the same output file")
     for config in configs:
-        typer.echo(str(_export(config, out_dir, fmt)))
+        typer.echo(str(_export(config, out_dir, fmt, filename)))
+
+
+def _validate_filename(filename: str | None, all_presets: bool) -> None:
+    if filename is None:
+        return
+    if all_presets:
+        raise _fail("--filename cannot be combined with --all-presets")
+    if Path(filename).name != filename or filename in {"", ".", ".."}:
+        raise _fail("--filename must be a bare file name; use --out to choose the directory")
 
 
 @app.command()
@@ -75,8 +89,13 @@ def generate(
         bool, typer.Option("--all-presets", help="Export every preset.")
     ] = False,
     fmt: Annotated[OutputFormat, typer.Option("--format", help="Output file format.")] = "png",
+    filename: Annotated[
+        str | None,
+        typer.Option(help="Output file name; defaults to <title-slug>-<preset>.<format>."),
+    ] = None,
 ) -> None:
     """Generate one banner, or one per preset with --all-presets."""
+    _validate_filename(filename, all_presets)
     presets = list(PRESET_REGISTRY) if all_presets else [preset]
     try:
         configs = [
@@ -91,7 +110,7 @@ def generate(
             )
             for name in presets
         ]
-        _export_all(configs, out, fmt)
+        _export_all(configs, out, fmt, filename)
     except ValidationError as exc:
         raise _fail(_format_validation_error(exc)) from None
     except BannerEngineError as exc:

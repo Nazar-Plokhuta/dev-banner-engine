@@ -1,4 +1,5 @@
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -11,6 +12,9 @@ from src.core.presets import PRESET_REGISTRY, UnknownPresetError
 
 PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
 runner = CliRunner()
+
+# Rich-formatted Typer errors interleave colour codes with option names when CI forces colour.
+_ANSI_ESCAPE = re.compile(r"\x1b\[[0-9;]*m")
 
 
 def base_args(out: Path, *extra: str) -> list[str]:
@@ -122,7 +126,7 @@ def test_title_too_long_reports_field(tmp_path: Path) -> None:
 def test_missing_required_option_fails(tmp_path: Path) -> None:
     result = runner.invoke(app, ["generate", "--tagline", "x", "--out", str(tmp_path)])
     assert result.exit_code != 0
-    assert "--title" in result.output
+    assert "--title" in _ANSI_ESCAPE.sub("", result.output)
 
 
 def test_missing_chips_is_actionable(tmp_path: Path) -> None:
